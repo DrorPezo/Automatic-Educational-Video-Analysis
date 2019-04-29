@@ -2,12 +2,29 @@ import numpy as np
 import cv2
 import os
 from skimage.io import imsave
+import skvideo.io
 from scipy.stats import wasserstein_distance
 
 cap = cv2.VideoCapture("ted_black_holes.mp4")
 previous_frame = None
 t_emd = 0.0008
-shots = []
+bins = 64
+shots = list()
+counter = 0
+frame_ctr = 0
+sampled = 0
+MAX_SAMPLED = 100
+first_frame = 1
+fps = 30
+
+
+class Shot:
+    def __init__(self, t):
+        self.starting_time = t
+        self.frames_arr = list()
+
+    def add_frame(self, img):
+        self.frames_arr.append(img)
 
 
 def normalize_exposure(img):
@@ -19,13 +36,13 @@ def normalize_exposure(img):
     # get the sum of vals accumulated by each position in hist
     cdf = np.array([sum(hist[:i+1]) for i in range(len(hist))])
     # determine the normalization values for each unit of the cdf
-    sk = np.uint8(255 * cdf)
+    sk = np.uint8((bins-1) * cdf)
     # normalize each position in the output image
     height, width = img.shape
     normalized = np.zeros_like(img)
     for i in range(0, height):
         for j in range(0, width):
-            normalized[i, j] = sk[img[i, j]]
+            normalized[i, j] = sk[int(img[i, j]/(256/bins))]
     return normalized.astype(int)
 
 
@@ -37,10 +54,10 @@ def get_histogram(img):
     The histogram's values sum to 1.
     '''
     h, w = img.shape
-    hist = [0.0] * 256
+    hist = [0.0] * bins
     for i in range(h):
         for j in range(w):
-            hist[img[i, j]] += 1
+            hist[int(img[i, j]/(256/bins))] += 1
     return np.array(hist) / (h * w)
 
 
@@ -88,30 +105,61 @@ def edge_based_difference(img1, img2):
                 i += 1
     return i
 
-counter = 0
-while(True):
+
+def video_shot(frames, file_name):
+    frames = np.expand_dims(frames, axis=-1)
+    print(frames.shape)
+    output_data = np.asarray(frames)
+    output_data = output_data.astype(np.uint8)
+    skvideo.io.vwrite(file_name, output_data)
+
+
+while cap.isOpened():
     # Capture frame-by-frame
-    ret, frame = cap.read()
+    ret, orig_frame = cap.read()
+    if ret == False:
+        break
     # Our operations on the frame come here
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.cvtColor(orig_frame, cv2.COLOR_BGR2GRAY)
+    processed_frame = cv2.resize(frame, dsize=None, fx=0.1, fy=0.1)
+    if first_frame == 1:
+        previous_frame = frame
+        # imsave('shot_number_0.jpg', frame)
+        first_frame = 0
+        shots.append(Shot(0))
+
     # Display the resulting frame
-    cv2.imshow('frame',frame)
+    cv2.imshow('frame', processed_frame)
     # Applying SBD algorithm
     # EMD Distance from this paper - http://leibniz.cs.huji.ac.il/tr/1143.pdf
-    if previous_frame is not None:
-        emd = earth_movers_distance(previous_frame, frame)
+    if sampled == MAX_SAMPLED:
+        emd = earth_movers_distance(previous_frame, processed_frame)
+        # print(emd)
         # edge_diff = edge_based_difference(previous_frame, frame)
         if emd > t_emd:
-            print("Boundary shot has been detected")
+            time = frame_ctr/fps
+            print("Boundary shot has been detected " + "t = " + str(time) + " seconds")
             counter += 1
-            shots.append(frame)
-            imsave('shot_number_' + str(counter) + '.jpg', frame)
+            shots.append(Shot(time))
+            # imsave('shot_number_' + str(counter) + '.jpg', frame)
+        previous_frame = processed_frame
+        sampled = 0
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-    previous_frame = frame
+    sampled += 1
+    frame_ctr += 1
+    shots[-1].add_frame(processed_frame)
+
 
 # When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows()
 print(str(counter) + " shots has been detected")
+# print("number of shots is: " + str(len(shots)))
+
+# for i in range(len(shots)):
+#     video_shot(shots[i].frames_arr, 'shot ' + str(i) + '.mp4')
+#     print('--------Shot ' + str(i) + ' has been saved------------')
+
+print('--------Finish------------')
