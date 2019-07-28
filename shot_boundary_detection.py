@@ -1,13 +1,15 @@
 import numpy as np
 import cv2
 import os
+import errno
 from skimage.io import imsave
 import skvideo.io
 from scipy.stats import wasserstein_distance
 
+
 cap = cv2.VideoCapture("ted_black_holes.mp4")
 previous_frame = None
-t_emd = 0.0008
+t_emd = 0.001
 bins = 64
 shots = list()
 counter = 0
@@ -106,6 +108,15 @@ def edge_based_difference(img1, img2):
     return i
 
 
+def shot_stability(shot):
+    shot_size = len(shot)
+    f_s = 0
+    for k in range(1, shot_size):
+        f_s += edge_based_difference(shot[k-1], shot[k])
+    f_s = f_s/(shot_size+1)
+    return f_s
+
+
 def video_shot(frames, file_name):
     frames = np.expand_dims(frames, axis=-1)
     print(frames.shape)
@@ -114,7 +125,34 @@ def video_shot(frames, file_name):
     skvideo.io.vwrite(file_name, output_data)
 
 
-while cap.isOpened():
+def face_detection(image):
+    cascPath = "haarcascade_frontalface_default.xml"
+    faceCascade = cv2.CascadeClassifier(cascPath)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = faceCascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(1,1),
+        flags = cv2.CASCADE_SCALE_IMAGE
+    )
+
+    print("Detected {0} faces!".format(len(faces)))
+    for (x, y, w, h) in faces:
+        cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    # cv2.imshow("Faces Detected", image)
+    # cv2.waitKey(0)
+
+path = os.getcwd() + '/shots'
+try:
+    os.makedirs(path)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+os.chdir(path)
+print(os.getcwd())
+
+while True:
     # Capture frame-by-frame
     ret, orig_frame = cap.read()
     if ret == False:
@@ -129,7 +167,7 @@ while cap.isOpened():
         shots.append(Shot(0))
 
     # Display the resulting frame
-    cv2.imshow('frame', processed_frame)
+    cv2.imshow('frame', frame)
     # Applying SBD algorithm
     # EMD Distance from this paper - http://leibniz.cs.huji.ac.il/tr/1143.pdf
     if sampled == MAX_SAMPLED:
@@ -156,10 +194,14 @@ while cap.isOpened():
 cap.release()
 cv2.destroyAllWindows()
 print(str(counter) + " shots has been detected")
-# print("number of shots is: " + str(len(shots)))
+print("number of shots is: " + str(len(shots)))
+stab = list()
 
-# for i in range(len(shots)):
-#     video_shot(shots[i].frames_arr, 'shot ' + str(i) + '.mp4')
-#     print('--------Shot ' + str(i) + ' has been saved------------')
+for i in range(len(shots)):
+    video_shot(shots[i].frames_arr, 'shot ' + str(i) + '.mp4')
+    print('--------Shot ' + str(i) + ' has been saved------------')
+    f_s = shot_stability(shots[i].frames_arr)
+    stab.append(f_s)
+    print('shot ' + str(i) + ' stability is: ' + str(f_s))
 
 print('--------Finish------------')
