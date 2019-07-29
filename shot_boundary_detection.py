@@ -5,9 +5,11 @@ import errno
 from skimage.io import imsave
 import skvideo.io
 from scipy.stats import wasserstein_distance
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from moviepy.editor import VideoFileClip
 
-
-cap = cv2.VideoCapture("ted_black_holes.mp4")
+video_title = "ted_black_holes.mp4"
+cap = cv2.VideoCapture(video_title)
 previous_frame = None
 t_emd = 0.001
 bins = 64
@@ -15,7 +17,7 @@ shots = list()
 counter = 0
 frame_ctr = 0
 sampled = 0
-MAX_SAMPLED = 100
+MAX_SAMPLED = 90
 first_frame = 1
 fps = 30
 
@@ -23,6 +25,7 @@ fps = 30
 class Shot:
     def __init__(self, t):
         self.starting_time = t
+        self.ending_time = 0
         self.frames_arr = list()
 
     def add_frame(self, img):
@@ -119,7 +122,6 @@ def shot_stability(shot):
 
 def video_shot(frames, file_name):
     frames = np.expand_dims(frames, axis=-1)
-    print(frames.shape)
     output_data = np.asarray(frames)
     output_data = output_data.astype(np.uint8)
     skvideo.io.vwrite(file_name, output_data)
@@ -143,31 +145,25 @@ def face_detection(image):
     # cv2.imshow("Faces Detected", image)
     # cv2.waitKey(0)
 
-path = os.getcwd() + '/shots'
-try:
-    os.makedirs(path)
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-os.chdir(path)
-print(os.getcwd())
+stab = list()
 
 while True:
     # Capture frame-by-frame
     ret, orig_frame = cap.read()
+    curr_shot = None
     if ret == False:
         break
     # Our operations on the frame come here
     frame = cv2.cvtColor(orig_frame, cv2.COLOR_BGR2GRAY)
-    processed_frame = cv2.resize(frame, dsize=None, fx=0.1, fy=0.1)
+    processed_frame = cv2.resize(frame, dsize=None, fx=0.3, fy=0.3)
     if first_frame == 1:
         previous_frame = frame
         # imsave('shot_number_0.jpg', frame)
         first_frame = 0
-        shots.append(Shot(0))
-
+        curr_shot = Shot(0)
+        shots.append(curr_shot)
     # Display the resulting frame
-    cv2.imshow('frame', frame)
+    cv2.imshow('frame', orig_frame)
     # Applying SBD algorithm
     # EMD Distance from this paper - http://leibniz.cs.huji.ac.il/tr/1143.pdf
     if sampled == MAX_SAMPLED:
@@ -178,7 +174,14 @@ while True:
             time = frame_ctr/fps
             print("Boundary shot has been detected " + "t = " + str(time) + " seconds")
             counter += 1
-            shots.append(Shot(time))
+            curr_shot = Shot(time)
+            shots[-1].ending_time = time
+            f_s = shot_stability(shots[-1].frames_arr)
+            stab.append(f_s)
+            print('shot stability is: ' + str(f_s) + ' , ' + 'starting time: ' + str(shots[-1].starting_time) +
+                  ' ending time: ' + str(shots[-1].ending_time))
+            shots[-1].frames_arr.clear()
+            shots.append(curr_shot)
             # imsave('shot_number_' + str(counter) + '.jpg', frame)
         previous_frame = processed_frame
         sampled = 0
@@ -188,6 +191,7 @@ while True:
     sampled += 1
     frame_ctr += 1
     shots[-1].add_frame(processed_frame)
+    # shots[-1].add_frame(frame)
 
 
 # When everything done, release the capture
@@ -195,13 +199,25 @@ cap.release()
 cv2.destroyAllWindows()
 print(str(counter) + " shots has been detected")
 print("number of shots is: " + str(len(shots)))
-stab = list()
+
+# path = os.getcwd() + '/shots'
+# try:
+#     os.makedirs(path)
+# except OSError as e:
+#     if e.errno != errno.EEXIST:
+#         raise
+#
+# print(os.getcwd())
 
 for i in range(len(shots)):
-    video_shot(shots[i].frames_arr, 'shot ' + str(i) + '.mp4')
+    curr_shot = shots[i]
+    starting_time = curr_shot.starting_time
+    ending_time = curr_shot.ending_time
+    # ffmpeg_extract_subclip(video_title, starting_time, ending_time, targetname='shot ' + str(i) + '.mp4')
+    print('starting time: ' + str(starting_time) + ' ending time: ' + str(ending_time))
+    clip = VideoFileClip(video_title).subclip(starting_time, ending_time)
+    clip.write_videofile('shot ' + str(i) + '.mp4')
+    clip.close()
     print('--------Shot ' + str(i) + ' has been saved------------')
-    f_s = shot_stability(shots[i].frames_arr)
-    stab.append(f_s)
-    print('shot ' + str(i) + ' stability is: ' + str(f_s))
 
 print('--------Finish------------')
