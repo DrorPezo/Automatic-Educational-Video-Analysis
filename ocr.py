@@ -1,11 +1,33 @@
-from imutils.video import VideoStream
-from imutils.video import FPS
 from imutils.object_detection import non_max_suppression
+from PIL import Image
 import numpy as np
-import argparse
 import imutils
-import time
 import cv2
+import pytesseract
+
+LINE_LEN = 12
+config = '-l eng --oem 1 --psm 3'
+
+
+def calc_avg_score(words):
+    total = 0
+    for word in words:
+        total += word.score
+    return total / len(words)
+
+
+class Word:
+    def __init__(self, score, text):
+        self.score = score
+        self.text = text
+        self.length = len(text)
+
+
+class TextualData:
+    def __init__(self, words):
+        self.words = words
+        self.words_num = len(words)
+        self.avg_score = calc_avg_score(self.words)
 
 
 def decode_predictions(scores, geometry):
@@ -67,7 +89,6 @@ def decode_predictions(scores, geometry):
     return (rects, confidences)
 
 
-
 # loop over frames from the video stream
 def detect(img):
     # grab the current frame, then handle if we are using a
@@ -112,12 +133,13 @@ def detect(img):
                                  (123.68, 116.78, 103.94), swapRB=True, crop=False)
     net.setInput(blob)
     (scores, geometry) = net.forward(layerNames)
+    print(scores[0][0].shape)
 
     # decode the predictions, then  apply non-maxima suppression to
     # suppress weak, overlapping bounding boxes
     (rects, confidences) = decode_predictions(scores, geometry)
     boxes = non_max_suppression(np.array(rects), probs=confidences)
-    print(confidences)
+    # print(confidences)
     # loop over the bounding boxes
     for (startX, startY, endX, endY) in boxes:
         # scale the bounding box coordinates based on the respective
@@ -132,19 +154,40 @@ def detect(img):
 
     return orig
 
-cap = cv2.VideoCapture(0)
 
-while(True):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-    detections = detect(frame)
+def num_of_words(img):
+    # Run tesseract OCR on image
+    text = pytesseract.image_to_string(img, config=config)
+    # Print recognized text
+    # print(text)
+    res = len(text.split())
+    return res
 
-    # Display the resulting frame
-    cv2.imshow('frame',detections)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
 
-# When everything done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+def collect_textual_data_for_frame(img):
+    # img_data = pytesseract.image_to_data(Image.open('sample1.jpg'))
+    img_data = pytesseract.image_to_data(img)
+    img_data = img_data.splitlines()
+    words = []
+    scores = []
+    words_obj = []
+
+    for line in range(1, len(img_data)):
+        data_line = img_data[line]
+        # print(data_line)
+        data_list = data_line.split()
+        if len(data_list) == 12 and data_list[-2] > 0.5:
+            words.append(data_list[-1])
+            scores.append(data_list[-2])
+
+    for i in range(1,len(words)):
+        word = Word(int(scores[i])/100, words[i])
+        words_obj.append(word)
+
+    return TextualData(words_obj)
+
+
+
+
+
 
