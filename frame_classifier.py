@@ -15,7 +15,7 @@ UNKNOWN = 0
 theta_l = 2
 theta_s = 10
 theta_f = 0.3
-theta_t = 0
+theta_t = 4
 
 
 def calc_shot_stab(shot):
