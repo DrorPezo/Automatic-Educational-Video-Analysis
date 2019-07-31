@@ -1,6 +1,11 @@
 import cv2
 import numpy as np
 
+POSITIVE = 1
+NEGATIVE = -1
+UNKNOWN = 0
+
+
 def edge_based_difference(img1, img2):
     tau = 0.1
     N = 8
@@ -29,6 +34,8 @@ class Shot:
         self.face_score = 0
         self.shot_len = 0
         self.title = shot_title
+        self.f_t = 0
+        self.shot_type = UNKNOWN
 
     def add_frame(self, img):
         self.frames_arr.append(img)
@@ -52,6 +59,7 @@ class Shot:
 
     def calculate_len(self):
         cap = cv2.VideoCapture(self.title)
+        fps = cap.get(cv2.CAP_PROP_FPS)
         len = 0
         while True:
             ret, orig_frame = cap.read()
@@ -59,6 +67,19 @@ class Shot:
                 break
             len += 1
         self.shot_len = len
+        self.ending_time = len/fps
+        return len
+
+    def classify_shot(self, theta_l, theta_s, theta_f, theta_t):
+        if self.shot_len > theta_l:
+            if self.shot_stability < theta_s and self.face_score < theta_f and self.f_t > theta_t:
+                self.shot_type = POSITIVE
+            else:
+                self.shot_type = NEGATIVE
+        else:
+            self.shot_type = UNKNOWN
+
+
 
 
 

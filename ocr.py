@@ -13,7 +13,10 @@ def calc_avg_score(words):
     total = 0
     for word in words:
         total += word.score
-    return total / len(words)
+    if len(words) == 0:
+        return 0
+    else:
+        return total / len(words)
 
 
 class Word:
@@ -176,9 +179,9 @@ def collect_textual_data_for_frame(img):
         data_line = img_data[line]
         # print(data_line)
         data_list = data_line.split()
-        if len(data_list) == 12 and data_list[-2] > 0.5:
+        if len(data_list) == 12 and int(data_list[-2]) > 0.5:
             words.append(data_list[-1])
-            scores.append(data_list[-2])
+            scores.append(int(data_list[-2]))
 
     for i in range(1,len(words)):
         word = Word(int(scores[i])/100, words[i])
