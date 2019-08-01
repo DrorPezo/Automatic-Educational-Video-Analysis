@@ -14,12 +14,12 @@ fps = cap.get(cv2.CAP_PROP_FPS)
 previous_frame = None
 t_emd = 30
 t_emd_diff = 20
-bins = 64
+bins = 32
 shots = list()
 counter = 0
 frame_ctr = 0
 first_frame = 1
-MAX_SAMPLED = 10
+MAX_SAMPLED = 12
 sampled = 0
 
 
@@ -157,21 +157,26 @@ while True:
         sum_b = sum(emds_b)
         sum_g = sum(emds_g)
         sum_r = sum(emds_r)
-        # print('B emds sum: ' + str(sum_b))
-        # print('G emds sum: ' + str(sum_g))
-        # print('R emds sum: ' + str(sum_r))
-        # edge_diff = edge_based_difference(previous_frame, frame)
         time = float(frame_ctr / fps)
+        print('time: ' + str(time))
+        print('B emds sum: ' + str(sum_b))
+        print('G emds sum: ' + str(sum_g))
+        print('R emds sum: ' + str(sum_r))
+        # edge_diff = edge_based_difference(previous_frame, frame)
         sums_diff_b = np.linalg.norm(sum_b - prev_emd_b)
         sums_diff_r = np.linalg.norm(sum_r - prev_emd_r)
         sums_diff_g = np.linalg.norm(sum_g - prev_emd_g)
-        # print('Sum difference of b: ' + str(sums_diff_b))
-        # print('Sum difference of r: ' + str(sums_diff_r))
-        # print('Sum difference of g: ' + str(sums_diff_g))
-        if max([sum_b, sum_g, sum_r]) > t_emd and max([sums_diff_b, sums_diff_r, sums_diff_g]) > t_emd_diff:
+        print('Sum difference of b: ' + str(sums_diff_b))
+        print('Sum difference of r: ' + str(sums_diff_r))
+        print('Sum difference of g: ' + str(sums_diff_g))
+        max_sum = max([sum_b, sum_g, sum_r])
+        max_sum_diff = max([sums_diff_b, sums_diff_r, sums_diff_g])
+        print(max_sum)
+        print(max_sum_diff)
+        if max_sum + max_sum_diff > t_emd + t_emd_diff:
         # if max([sums_diff_b, sums_diff_r, sums_diff_g]) > t_emd_diff:
-            print("Transition has been detected at " + "t = " + str(time) + " seconds")
-            if time - shots[-1].starting_time > 1:
+            if time - shots[-1].starting_time > 1.5:
+                print("Transition has been detected at " + "t = " + str(time) + " seconds")
                 counter += 1
                 curr_shot = Shot(time, ' ')
                 shots[-1].ending_time = time
