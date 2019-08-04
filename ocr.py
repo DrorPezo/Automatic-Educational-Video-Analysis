@@ -6,6 +6,7 @@ import cv2
 import pytesseract
 
 LINE_LEN = 12
+MAX_SAMPLED = 10
 config = '-l eng --oem 1 --psm 3'
 
 

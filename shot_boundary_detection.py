@@ -11,15 +11,16 @@ from utils import Shot
 video_title = "ted_black_holes.mp4"
 cap = cv2.VideoCapture(video_title)
 fps = cap.get(cv2.CAP_PROP_FPS)
+print(fps)
 previous_frame = None
 t_emd = 30
 t_emd_diff = 20
 bins = 32
-shots = list()
+curr_shot = Shot(0, ' ')
 counter = 0
 frame_ctr = 0
 first_frame = 1
-MAX_SAMPLED = 12
+MAX_SAMPLED = 10
 sampled = 0
 
 
@@ -98,13 +99,21 @@ def video_shot(frames, file_name):
     skvideo.io.vwrite(file_name, output_data)
 
 
-stab = list()
 time = 0
 
+# path = os.getcwd() + '\shots'
+path = os.getcwd() + '/shots_' + video_title
+
+try:
+    os.makedirs(path)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+
+i = 0
 while True:
     # Capture frame-by-frame
     ret, orig_frame = cap.read()
-    curr_shot = None
     if ret == False:
         break
     # Our operations on the frame come here
@@ -114,9 +123,6 @@ while True:
     processed_frame_g = cv2.resize(g, dsize=None, fx=0.4, fy=0.4)
     processed_frame_r = cv2.resize(r, dsize=None, fx=0.4, fy=0.4)
     if first_frame == 1:
-        # previous_frame_b = np.zeros(processed_frame_b.shape)
-        # previous_frame_g = np.zeros(processed_frame_g.shape)
-        # previous_frame_r = np.zeros(processed_frame_r.shape)
         previous_frame_b = processed_frame_b
         previous_frame_g = processed_frame_g
         previous_frame_r = processed_frame_r
@@ -124,8 +130,7 @@ while True:
         prev_emd_r = 0
         prev_emd_g = 0
         first_frame = 0
-        curr_shot = Shot(0, ' ')
-        shots.append(curr_shot)
+
     # Display the resulting frame
     # cv2.imshow('frame', orig_frame)
     # Applying SBD algorithm
@@ -159,71 +164,83 @@ while True:
         sum_r = sum(emds_r)
         time = float(frame_ctr / fps)
         print('time: ' + str(time))
-        print('B emds sum: ' + str(sum_b))
-        print('G emds sum: ' + str(sum_g))
-        print('R emds sum: ' + str(sum_r))
+        # print('B emds sum: ' + str(sum_b))
+        # print('G emds sum: ' + str(sum_g))
+        # print('R emds sum: ' + str(sum_r))
         # edge_diff = edge_based_difference(previous_frame, frame)
         sums_diff_b = np.linalg.norm(sum_b - prev_emd_b)
         sums_diff_r = np.linalg.norm(sum_r - prev_emd_r)
         sums_diff_g = np.linalg.norm(sum_g - prev_emd_g)
-        print('Sum difference of b: ' + str(sums_diff_b))
-        print('Sum difference of r: ' + str(sums_diff_r))
-        print('Sum difference of g: ' + str(sums_diff_g))
+        # print('Sum difference of b: ' + str(sums_diff_b))
+        # print('Sum difference of r: ' + str(sums_diff_r))
+        # print('Sum difference of g: ' + str(sums_diff_g))
         max_sum = max([sum_b, sum_g, sum_r])
         max_sum_diff = max([sums_diff_b, sums_diff_r, sums_diff_g])
-        print(max_sum)
-        print(max_sum_diff)
+        # print(max_sum)
+        # print(max_sum_diff)
         if max_sum + max_sum_diff > t_emd + t_emd_diff:
         # if max([sums_diff_b, sums_diff_r, sums_diff_g]) > t_emd_diff:
-            if time - shots[-1].starting_time > 1.5:
+            if time - curr_shot.starting_time > 1.5:
                 print("Transition has been detected at " + "t = " + str(time) + " seconds")
                 counter += 1
+                curr_shot.ending_time = time
+                starting_time = curr_shot.starting_time
+                ending_time = curr_shot.ending_time
+                print('starting time: ' + str(curr_shot.starting_time) +
+                      ' ending time: ' + str(curr_shot.ending_time))
+
+                # ffmpeg_extract_subclip(video_title, starting_time, ending_time, targetname='shot ' + str(i) + '.mp4')
+                print('starting time: ' + str(starting_time) + ' ending time: ' + str(ending_time))
+                clip = VideoFileClip(video_title).subclip(starting_time, ending_time)
+                clip.write_videofile('shots/shot_' + str(counter) + '.mp4')
+                clip.close()
+                print('--------Shot ' + str(counter) + ' has been saved------------')
                 curr_shot = Shot(time, ' ')
-                shots[-1].ending_time = time
-                print('starting time: ' + str(shots[-1].starting_time) +
-                      ' ending time: ' + str(shots[-1].ending_time))
-                shots.append(curr_shot)
-        shots[-1].ending_time = time
+
+
+        # curr_shot.ending_time = time
         previous_frame_b = processed_frame_b
         previous_frame_g = processed_frame_g
         previous_frame_r = processed_frame_r
+
         prev_emd_b = sum_b
         prev_emd_r = sum_r
         prev_emd_g = sum_g
         sampled = 0
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+    #     break
     frame_ctr += 1
     sampled += 1
-    shots[-1].add_frame(cv2.cvtColor(orig_frame, cv2.COLOR_BGR2GRAY))
+    # shots[-1].add_frame(cv2.cvtColor(orig_frame, cv2.COLOR_BGR2GRAY))
 
 # For the last shot
-shots[-1].ending_time = float(frame_ctr / fps)
+counter += 1
+curr_shot.ending_time = float(frame_ctr / fps)
+starting_time = curr_shot.starting_time
+ending_time = curr_shot.ending_time
+# ffmpeg_extract_subclip(video_title, starting_time, ending_time, targetname='shot ' + str(i) + '.mp4')
+print('starting time: ' + str(starting_time) + ' ending time: ' + str(ending_time))
+clip = VideoFileClip(video_title).subclip(starting_time, ending_time)
+clip.write_videofile('shots/shot_' + str(counter) + '.mp4')
+clip.close()
+print('--------Shot ' + str(counter) + ' has been saved------------')
 # When everything done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+# cap.release()
+# cv2.destroyAllWindows()
 print(str(counter) + " shots has been detected")
-print("number of shots is: " + str(len(shots)))
+# print("number of shots is: " + str(len(shots)))
 
-# path = os.getcwd() + '\shots'
-path = os.getcwd() + '/shots'
 
-try:
-    os.makedirs(path)
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-
-for i in range(len(shots)):
-    curr_shot = shots[i]
-    starting_time = curr_shot.starting_time
-    ending_time = curr_shot.ending_time
-    # ffmpeg_extract_subclip(video_title, starting_time, ending_time, targetname='shot ' + str(i) + '.mp4')
-    print('starting time: ' + str(starting_time) + ' ending time: ' + str(ending_time))
-    clip = VideoFileClip(video_title).subclip(starting_time, ending_time)
-    clip.write_videofile('shots/shot_' + str(i) + '.mp4')
-    clip.close()
-    print('--------Shot ' + str(i) + ' has been saved------------')
+# for i in range(len(shots)):
+#     curr_shot = shots[i]
+#     starting_time = curr_shot.starting_time
+#     ending_time = curr_shot.ending_time
+#     # ffmpeg_extract_subclip(video_title, starting_time, ending_time, targetname='shot ' + str(i) + '.mp4')
+#     print('starting time: ' + str(starting_time) + ' ending time: ' + str(ending_time))
+#     clip = VideoFileClip(video_title).subclip(starting_time, ending_time)
+#     clip.write_videofile('shots/shot_' + str(i) + '.mp4')
+#     clip.close()
+#     print('--------Shot ' + str(i) + ' has been saved------------')
 
 print('--------Finish------------')
