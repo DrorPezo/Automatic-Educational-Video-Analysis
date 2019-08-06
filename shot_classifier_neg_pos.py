@@ -103,13 +103,6 @@ def classify_all_shots():
         shot = Shot(0, video_title)
         print('Shot ' + str(i))
         shot_stab = calc_shot_stab(shot)
-        # print("shot stability: " + str(shot_stab))
-        # face_score = detect_face(shot)
-        # shot.face_score = face_score
-        # print("face score: " + str(face_score))
-        # f_t = calc_shot_textual_data(shot)
-        # shot.f_t = f_t
-        # print("Average number of words: " + str(f_t))
         if i > 1:
             prev_s = shots[-1].shot_stability
         else:

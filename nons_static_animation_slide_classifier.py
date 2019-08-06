@@ -5,9 +5,7 @@ from sons_classifier import MIN_THRESH
 from utils import edge_based_difference
 import re
 import errno
-import imageio
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+
 
 MIN_CHANGES = 20
 MAX_DELTA = 500
@@ -204,14 +202,6 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
-path_UNKNOWN = 'UNKNOWN'
-try:
-    os.mkdir(path_UNKNOWN)
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-
-
 arr = os.listdir()
 
 for file in arr:
@@ -230,7 +220,5 @@ for file in arr:
             # print("shot_" + str(shot_num) + ".mp4")
             os.rename(file, path_ANIMATION + "\shot_" + str(shot_num) + ".mp4")
         elif slide_type == UNKNOWN:
-            os.path.join(path_UNKNOWN, "shot_" + str(shot_num) + ".mp4")
-            # print("shot_" + str(shot_num) + ".mp4")
-            os.rename(file, path_UNKNOWN + "\shot_" + str(shot_num) + ".mp4")
+            pass
 
