@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import os
 from scipy.spatial.distance import euclidean
 
 
@@ -100,12 +99,11 @@ def train_sbd(video_title):
             thresh_val = np.average(range(0, 32), weights=hist) * 8
             threshes.append(thresh_val)
             # check if image is dark
-
             ret, thresh = cv2.threshold(gray, thresh_val/2, 255, cv2.THRESH_BINARY)
             edges = cv2.Canny(thresh, thresh_val, 255)
             kernel = np.ones((5, 5), np.uint8)
             edges = cv2.dilate(edges, kernel, iterations=1)
-            contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            _, contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             max_contour = None
             max_contour_area = 0
             for contour in contours:
@@ -232,6 +230,7 @@ def train_thresh(video_title, rect_points):
     hist, bin_edges = np.histogram(threshes, bins=5)
     threshes = [i for i in threshes if i >= bin_edges[2]]
     thresh = np.median(threshes)
+    print(thresh)
     return thresh
 
 # os.chdir('shots_ted_black_holes')

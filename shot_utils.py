@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 from models.ocr import collect_textual_data_for_frame
 
 POSITIVE = 1
@@ -88,6 +89,21 @@ def edge_based_difference(img1, img2):
             if d > tau:
                 i += 1
     return changes, i
+
+
+def get_thumbnail_from_video(video_path):
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = int(fps)
+    cnt = 0
+    while True:
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        if cnt == fps:
+            img = os.path.splitext(os.path.basename(video_path))[0]
+            cv2.imwrite(os.path.join(os.path.dirname(video_path), 'thumbnail_' + img + '.jpg'), frame)
+            break
+        cnt += 1
 
 
 class Shot:

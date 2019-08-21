@@ -10,7 +10,7 @@ from shots_analysis.nons_static_animation_slide_classifier import extract_slides
 # from shots_analysis.sos_static_animation_classifier import classify_sos
 # from shots_analysis.slide_region_detection_static import save_slide
 # from shots_analysis.slide_region_detection_animation import save_animation
-from utils import is_video_file
+from shot_utils import is_video_file
 
 
 if __name__ == '__main__':

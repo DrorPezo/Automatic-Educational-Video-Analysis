@@ -1,57 +1,23 @@
-#!/usr/bin/env python
-
-
-#############################################################################
-##
-## Copyright (C) 2013 Riverbank Computing Limited.
-## Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-## All rights reserved.
-##
-## This file is part of the examples of PyQt.
-##
-## $QT_BEGIN_LICENSE:BSD$
-## You may use this file under the terms of the BSD license as follows:
-##
-## "Redistribution and use in source and binary forms, with or without
-## modification, are permitted provided that the following conditions are
-## met:
-##   * Redistributions of source code must retain the above copyright
-##     notice, this list of conditions and the following disclaimer.
-##   * Redistributions in binary form must reproduce the above copyright
-##     notice, this list of conditions and the following disclaimer in
-##     the documentation and/or other materials provided with the
-##     distribution.
-##   * Neither the name of Nokia Corporation and its Subsidiary(-ies) nor
-##     the names of its contributors may be used to endorse or promote
-##     products derived from this software without specific prior written
-##     permission.
-##
-## THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-## "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-## LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-## A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-## OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-## SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-## LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-## DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-## THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-## $QT_END_LICENSE$
-##
-#############################################################################
-
-
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, Q_ARG, QAbstractItemModel,
-        QFileInfo, qFuzzyCompare, QMetaObject, QModelIndex, QObject, Qt,
-        QThread, QTime, QUrl)
-from PyQt5.QtGui import QColor, qGray, QImage, QPainter, QPalette
-from PyQt5.QtMultimedia import (QAbstractVideoBuffer, QMediaContent,
-        QMediaMetaData, QMediaPlayer, QMediaPlaylist, QVideoFrame, QVideoProbe)
+import json
+import os
+import re
+import glob
+from PyQt5.QtCore import (pyqtSignal, QAbstractItemModel, QFileInfo, qFuzzyCompare,
+                          QModelIndex, Qt, QTime, QUrl)
+from PyQt5.QtGui import QPalette, QStandardItemModel, QStandardItem, QColor, QBrush
+from PyQt5.QtMultimedia import (QMediaContent, QMediaMetaData, QMediaPlayer, QMediaPlaylist, QVideoProbe)
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from PyQt5.QtWidgets import (QApplication, QComboBox, QDialog, QFileDialog,
-        QFormLayout, QHBoxLayout, QLabel, QListView, QMessageBox, QPushButton,
-        QSizePolicy, QSlider, QStyle, QToolButton, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QApplication, QComboBox, QHBoxLayout, QLabel, QListView, QMessageBox, QLineEdit,
+                             QPushButton, QSizePolicy, QSlider, QStyle, QToolButton, QVBoxLayout, QWidget)
+from PyQt5.uic.properties import QtCore
+
+
+def load_dirty_json(dirty_json):
+    regex_replace = [(r"([ \{,:\[])(u)?'([^']+)'", r'\1"\3"'), (r" False([, \}\]])", r' false\1'), (r" True([, \}\]])", r' true\1')]
+    for r, s in regex_replace:
+        dirty_json = re.sub(r, s, dirty_json)
+    clean_json = json.loads(dirty_json)
+    return clean_json
 
 
 class VideoWidget(QVideoWidget):
@@ -173,13 +139,25 @@ class PlayerControls(QWidget):
         self.previousButton.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
         self.muteButton = QToolButton(clicked=self.muteClicked)
         self.muteButton.setIcon(self.style().standardIcon(QStyle.SP_MediaVolume))
-        self.volumeSlider = QSlider(Qt.Horizontal,sliderMoved=self.changeVolume)
+        self.volumeSlider = QSlider(Qt.Horizontal, sliderMoved=self.changeVolume)
         self.volumeSlider.setRange(0, 100)
         self.rateBox = QComboBox(activated=self.updateRate)
+        # self.nameLabel = QLabel(self)
+        # self.nameLabel.setText('Playing Rate:')
+        # self.textbox = QLineEdit(self)
+        # self.textbox.resize(120, 40)
+        # self.textbox.returnPressed.connect(self.onClick)
         self.rateBox.addItem("0.5x", 0.5)
+        self.rateBox.addItem("0.75x", 0.75)
         self.rateBox.addItem("1.0x", 1.0)
+        self.rateBox.addItem("1.25x", 1.25)
+        self.rateBox.addItem("1.5x", 1.5)
+        self.rateBox.addItem("1.75x", 1.75)
         self.rateBox.addItem("2.0x", 2.0)
-        self.rateBox.setCurrentIndex(1)
+        self.rateBox.addItem("2.5x", 2.5)
+        self.rateBox.addItem("3.0x", 3.0)
+        self.rateBox.addItem("4.0x", 4.0)
+        self.rateBox.setCurrentIndex(2)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -190,27 +168,26 @@ class PlayerControls(QWidget):
         layout.addWidget(self.muteButton)
         layout.addWidget(self.volumeSlider)
         layout.addWidget(self.rateBox)
+        # layout.addWidget(self.nameLabel)
+        # layout.addWidget(self.textbox)
         self.setLayout(layout)
 
     def state(self):
         return self.playerState
 
-    def setState(self,state):
+    def setState(self, state):
         if state != self.playerState:
             self.playerState = state
 
             if state == QMediaPlayer.StoppedState:
                 self.stopButton.setEnabled(False)
-                self.playButton.setIcon(
-                        self.style().standardIcon(QStyle.SP_MediaPlay))
+                self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
             elif state == QMediaPlayer.PlayingState:
                 self.stopButton.setEnabled(True)
-                self.playButton.setIcon(
-                        self.style().standardIcon(QStyle.SP_MediaPause))
+                self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
             elif state == QMediaPlayer.PausedState:
                 self.stopButton.setEnabled(True)
-                self.playButton.setIcon(
-                        self.style().standardIcon(QStyle.SP_MediaPlay))
+                self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
 
     def volume(self):
         return self.volumeSlider.value()
@@ -224,10 +201,8 @@ class PlayerControls(QWidget):
     def setMuted(self, muted):
         if muted != self.playerMuted:
             self.playerMuted = muted
-
-            self.muteButton.setIcon(
-                    self.style().standardIcon(
-                            QStyle.SP_MediaVolumeMuted if muted else QStyle.SP_MediaVolume))
+            self.muteButton.setIcon(self.style().standardIcon(
+                QStyle.SP_MediaVolumeMuted if muted else QStyle.SP_MediaVolume))
 
     def playClicked(self):
         if self.playerState in (QMediaPlayer.StoppedState, QMediaPlayer.PausedState):
@@ -239,61 +214,28 @@ class PlayerControls(QWidget):
         self.changeMuting.emit(not self.playerMuted)
 
     def playbackRate(self):
+        print(self.rateBox.itemData(self.rateBox.currentIndex()))
         return self.rateBox.itemData(self.rateBox.currentIndex())
+        # print(float(self.textbox.text()))
+        # return float(self.textbox.text())
 
     def setPlaybackRate(self, rate):
         for i in range(self.rateBox.count()):
             if qFuzzyCompare(rate, self.rateBox.itemData(i)):
                 self.rateBox.setCurrentIndex(i)
                 return
-
         self.rateBox.addItem("%dx" % rate, rate)
         self.rateBox.setCurrentIndex(self.rateBox.count() - 1)
 
     def updateRate(self):
         self.changeRate.emit(self.playbackRate())
 
-
-class FrameProcessor(QObject):
-    @pyqtSlot(QVideoFrame, int)
-    def processFrame(self, frame, levels):
-        histogram = [0.0] * levels
-
-        if levels and frame.map(QAbstractVideoBuffer.ReadOnly):
-            pixelFormat = frame.pixelFormat()
-
-            if pixelFormat == QVideoFrame.Format_YUV420P or pixelFormat == QVideoFrame.Format_NV12:
-                # Process YUV data.
-                bits = frame.bits()
-                for idx in range(frame.height() * frame.width()):
-                    histogram[(bits[idx] * levels) >> 8] += 1.0
-            else:
-                imageFormat = QVideoFrame.imageFormatFromPixelFormat(pixelFormat)
-                if imageFormat != QImage.Format_Invalid:
-                    # Process RGB data.
-                    image = QImage(frame.bits(), frame.width(), frame.height(), imageFormat)
-
-                    for y in range(image.height()):
-                        for x in range(image.width()):
-                            pixel = image.pixel(x, y)
-                            histogram[(qGray(pixel) * levels) >> 8] += 1.0
-
-            # Find the maximum value.
-            maxValue = 0.0
-            for value in histogram:
-                if value > maxValue:
-                    maxValue = value
-
-            # Normalise the values between 0 and 1.
-            if maxValue > 0.0:
-                for i in range(len(histogram)):
-                    histogram[i] /= maxValue
-
-            frame.unmap()
+    def onClick(self):
+        # print(self.textbox.text())
+        self.textbox.clear()
 
 
 class Player(QWidget):
-
     fullScreenChanged = pyqtSignal(bool)
 
     def __init__(self, title, parent=None):
@@ -320,12 +262,7 @@ class Player(QWidget):
 
         self.playlistModel = PlaylistModel()
         self.playlistModel.setPlaylist(self.playlist)
-
         self.playlistView = QListView()
-        self.playlistView.setModel(self.playlistModel)
-        self.playlistView.setCurrentIndex(self.playlistModel.index(self.playlist.currentIndex(), 0))
-
-        self.playlistView.activated.connect(self.jump)
 
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setRange(0, self.player.duration() / 1000)
@@ -358,7 +295,6 @@ class Player(QWidget):
         self.fullScreenButton = QPushButton("FullScreen")
         self.fullScreenButton.setCheckable(True)
 
-
         displayLayout = QHBoxLayout()
         displayLayout.addWidget(self.videoWidget, 2)
         displayLayout.addWidget(self.playlistView)
@@ -379,6 +315,32 @@ class Player(QWidget):
         layout.addLayout(controlLayout)
 
         self.setLayout(layout)
+        self.entry = QStandardItemModel()
+        self.playlistView.setModel(self.entry)
+
+        self.playlistView.clicked.connect(self.on_clicked_shot)
+        self.idx = 0
+        # When you receive the signal, you call QtGui.QStandardItemModel.itemFromIndex()
+        # on the given model index to get a pointer to the item
+        shots_list = []
+        self.starting_time_list = []
+        json_files = glob.glob('*.json')
+        shots_file = max(json_files, key=len)
+        # print(shots_file)
+        try:
+            with open(shots_file, 'r') as f:
+                distros_dict = json.load(f)
+                for shot in distros_dict:
+                    # print(shot)
+                    shots_list.append(shot['shot_number'])
+                    self.starting_time_list.append(int(float(shot['starting_time'])))
+        except Exception as e:
+            print(e)
+
+        for shot in shots_list:
+            it = QStandardItem(shot)
+            self.entry.appendRow(it)
+        self.itemOld = QStandardItem("text")
 
         if not self.player.isAvailable():
             QMessageBox.warning(self, "Service not available",
@@ -390,6 +352,12 @@ class Player(QWidget):
             self.fullScreenButton.setEnabled(False)
 
         self.metaDataChanged()
+
+    def on_clicked_shot(self, index):
+        item = self.entry.itemFromIndex(index)
+        item.setForeground(QBrush(QColor(255, 0, 0)))
+        self.itemOld.setForeground(QBrush(QColor(0, 0, 0)))
+        self.itemOld = item
 
     def addToPlaylist(self, fileNames):
         for name in fileNames:
@@ -407,6 +375,7 @@ class Player(QWidget):
 
     def loadVideoFile(self, file):
         fileInfo = QFileInfo(file)
+
         if fileInfo.exists():
             url = QUrl.fromLocalFile(fileInfo.absoluteFilePath())
             if fileInfo.suffix().lower() == 'm3u':
@@ -522,6 +491,7 @@ class Player(QWidget):
 
     def updateDurationInfo(self, currentInfo):
         duration = self.duration
+        self.current_time = int(currentInfo)
         if currentInfo or duration:
             currentTime = QTime((currentInfo/3600)%60, (currentInfo/60)%60,
                     currentInfo%60, (currentInfo*1000)%1000)
@@ -530,8 +500,19 @@ class Player(QWidget):
 
             format = 'hh:mm:ss' if duration > 3600 else 'mm:ss'
             tStr = currentTime.toString(format) + " / " + totalTime.toString(format)
+            if int(currentInfo) == self.starting_time_list[0]:
+                # print(self.starting_time_list)
+                self.starting_time_list.pop(0)
+                self.curr_index = self.playlistView.model().index(self.idx, 0)
+                item = self.entry.itemFromIndex(self.curr_index)
+                item.setForeground(QBrush(QColor(255, 0, 0)))
+                self.itemOld.setForeground(QBrush(QColor(0, 0, 0)))
+                self.itemOld = item
+                self.idx += 1
+
         else:
             tStr = ""
 
         self.labelDuration.setText(tStr)
+
 
