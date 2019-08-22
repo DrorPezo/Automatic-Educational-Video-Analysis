@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtGui import QPainter, QPen, QBrush, QPixmap, QColor
 
 from PyQt5.QtCore import Qt, QRect, QRectF
-from player import Player
+from Gui.player import Player
 
 RotOffset = 5.0
 ScaleOffset = 0.05
@@ -105,11 +105,12 @@ class PhotoFrameItem(QGraphicsItem):
                 title = file
                 fpath = os.path.abspath(file)
                 break
-        print(os.path.splitext(title)[0])
-        self.player = Player(os.path.splitext(title)[0])
-        print(fpath)
-        self.player.loadVideoFile(fpath)
-        self.player.show()
+        try:
+            self.player = Player(os.path.splitext(title)[0])
+            self.player.loadVideoFile(fpath)
+            self.player.show()
+        except Exception as e:
+            print(e)
 
 
 class PhotoItem(QGraphicsPixmapItem):
@@ -225,24 +226,6 @@ class CollageScene(QGraphicsScene):
         return paths
 
 
-class LoopIter:
-    '''Infinite iterator: loop on list elements, wrapping to first element when last element is reached'''
-    def __init__(self, l):
-        self.i = 0
-        self.l = l
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        item = self.l[self.i]
-        self.i = (self.i + 1) % len(self.l)
-        return item
-
-    def next(self):
-        return self.__next__()
-
-
 class PyView(QApplication):
     '''PyView class'''
 
@@ -254,8 +237,8 @@ class PyView(QApplication):
         self.gfxView = None
         self.layoutCombo = None
         self.appPath = os.path.abspath(os.path.dirname(argv[0]))
-        x = int(len(filenames) / 3) + len(filenames) % 3
-        y = int(len(filenames) / 3) + 3 - len(filenames) % 3
+        x = 3
+        y = int(len(filenames) / 3) + (len(filenames) % 3 > 0)
         self.currentLayout = ('createGridCollage', (x, y))
         # Init GUI
         self.initUI()
@@ -311,13 +294,17 @@ class PyView(QApplication):
 
     def createGridCollage(self, scene, numx, numy):
         '''Create a collage with specified number of rows and columns'''
+        files_list = []
+        for file in filenames:
+            files_list.append(file)
+        print(len(files_list))
         if filenames:
-            f = LoopIter(filenames)
             photoWidth = CollageSize.width() / numx
             photoHeight = CollageSize.height() / numy
             for x in range(0, numx):
                 for y in range(0, numy):
-                    scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), f.next())
+                    if files_list:
+                        scene.addPhoto(QRect(x * photoWidth, y * photoHeight, photoWidth, photoHeight), files_list.pop())
 
 
 def parse_args():

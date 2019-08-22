@@ -1,9 +1,6 @@
 import sys
 from langdetect import detect
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 from PyQt5.QtCore import pyqtSlot
 import numpy as np
 import pafy
@@ -16,8 +13,8 @@ import re
 import glob
 import cv2
 import time
-from PyQt5 import QtCore, QtWidgets, uic
-from shot_utils import get_thumbnail_from_video
+from PyQt5 import QtCore, QtWidgets
+from utils.shot_utils import get_thumbnail_from_video
 from shots_analysis.isBoardV6 import isBoard
 from shots_analysis.SlidesFiltering import slide_filtering
 
@@ -72,7 +69,8 @@ class App(QWidget):
             arg_list.append(file)
 
         files = ''.join(str(e) for e in arg_list)
-        script = 'python pyview.py ' + files
+        pyview_path = os.path.join('Gui', 'pyview.py')
+        script = 'python ' + pyview_path + ' ' + files
         os.system(script)
         # fileName, _ = QFileDialog.getOpenFileNames(self, "Open Files", "Lectures")
         # print(fileName)

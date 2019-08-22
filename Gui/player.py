@@ -324,23 +324,18 @@ class Player(QWidget):
         # on the given model index to get a pointer to the item
         shots_list = []
         self.starting_time_list = []
-        json_files = glob.glob('*.json')
-        shots_file = max(json_files, key=len)
-        # print(shots_file)
-        try:
+        shots_file = glob.glob('*.json')
+        if shots_file:
             with open(shots_file, 'r') as f:
                 distros_dict = json.load(f)
                 for shot in distros_dict:
                     # print(shot)
                     shots_list.append(shot['shot_number'])
                     self.starting_time_list.append(int(float(shot['starting_time'])))
-        except Exception as e:
-            print(e)
-
-        for shot in shots_list:
-            it = QStandardItem(shot)
-            self.entry.appendRow(it)
-        self.itemOld = QStandardItem("text")
+            for shot in shots_list:
+                it = QStandardItem(shot)
+                self.entry.appendRow(it)
+            self.itemOld = QStandardItem("text")
 
         if not self.player.isAvailable():
             QMessageBox.warning(self, "Service not available",
@@ -500,19 +495,18 @@ class Player(QWidget):
 
             format = 'hh:mm:ss' if duration > 3600 else 'mm:ss'
             tStr = currentTime.toString(format) + " / " + totalTime.toString(format)
-            if int(currentInfo) == self.starting_time_list[0]:
-                # print(self.starting_time_list)
-                self.starting_time_list.pop(0)
-                self.curr_index = self.playlistView.model().index(self.idx, 0)
-                item = self.entry.itemFromIndex(self.curr_index)
-                item.setForeground(QBrush(QColor(255, 0, 0)))
-                self.itemOld.setForeground(QBrush(QColor(0, 0, 0)))
-                self.itemOld = item
-                self.idx += 1
-
+            if self.starting_time_list:
+                if int(currentInfo) == self.starting_time_list[0]:
+                    # print(self.starting_time_list)
+                    self.starting_time_list.pop(0)
+                    self.curr_index = self.playlistView.model().index(self.idx, 0)
+                    item = self.entry.itemFromIndex(self.curr_index)
+                    item.setForeground(QBrush(QColor(255, 0, 0)))
+                    self.itemOld.setForeground(QBrush(QColor(0, 0, 0)))
+                    self.itemOld = item
+                    self.idx += 1
         else:
             tStr = ""
-
         self.labelDuration.setText(tStr)
 
 
