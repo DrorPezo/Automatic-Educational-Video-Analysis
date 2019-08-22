@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import errno
-from sons_classifier import MIN_THRESH
+from shots_analysis.sons_classifier import MIN_THRESH
 import os
 import re
 from moviepy.editor import ImageSequenceClip

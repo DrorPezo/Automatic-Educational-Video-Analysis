@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 import errno
-from utils import Shot
+from shot_utils import Shot
 import re
 import os
 import glob
-from utils import is_video_file
+from shot_utils import is_video_file
 
 POSITIVE = 1
 NEGATIVE = -1
@@ -54,7 +54,7 @@ def files_count():
 def classify_all_shots(video_title, rect_points):
     shots = []
     vt = os.path.splitext(video_title)[0]
-    path = 'shots_' + vt
+    path = 'shots'
 
     os.chdir(path)
     if rect_points is not None:

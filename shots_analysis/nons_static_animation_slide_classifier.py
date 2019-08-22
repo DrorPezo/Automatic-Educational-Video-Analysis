@@ -4,7 +4,6 @@ import os
 import re
 import errno
 from moviepy.editor import ImageSequenceClip
-from ffmpy import FFmpeg
 
 
 MIN_CHANGES = 20

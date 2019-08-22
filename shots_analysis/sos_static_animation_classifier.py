@@ -1,10 +1,9 @@
 import numpy as np
 import cv2
 import os
-from utils import edge_based_difference
 import re
 import errno
-from utils import is_video_file
+from shot_utils import is_video_file
 
 MIN_CHANGES = 20
 MAX_DELTA = 500

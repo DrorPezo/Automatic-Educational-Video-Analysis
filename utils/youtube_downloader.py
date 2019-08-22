@@ -7,6 +7,7 @@ def download_mp4_from_youtube(url):
     vPafy = pafy.new(url)
     best = vPafy.getbest(preftype='mp4')
     best.download()
+    return vPafy.title
 
 
 def download_video_transcript(url):
@@ -16,4 +17,3 @@ def download_video_transcript(url):
     print(transcript)
 
 
-download_video_transcript('https://www.youtube.com/watch?v=4kiHsIaK9_w')
