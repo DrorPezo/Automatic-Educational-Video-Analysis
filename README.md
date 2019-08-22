@@ -11,5 +11,6 @@ The project contains the following features:
 - run :
 python main.py 
 - The following window will be opened:
+https://user-images.githubusercontent.com/37666997/63534951-f4e44b80-c518-11e9-805e-2907554b5760.png
 
 For example, lets take the video: https://www.youtube.com/watch?v=HGYYEUSm-0Q
