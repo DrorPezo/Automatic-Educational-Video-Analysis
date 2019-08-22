@@ -7,10 +7,12 @@ The project contains the following features:
 - Able to calssify if the video is whiteboard lecture or presentation slide lecture.
 
 # Running instructions:
-- Clone the repository and install the requirements.
-- run :
+1. Clone the repository and install the requirements.
+2. run :
 python main.py 
-- The following window will be opened:
-https://user-images.githubusercontent.com/37666997/63534951-f4e44b80-c518-11e9-805e-2907554b5760.png
+3. The following window will be opened:
 
-For example, lets take the video: https://www.youtube.com/watch?v=HGYYEUSm-0Q
+4. Click "download new video", and download the video. Lets take the video: https://www.youtube.com/watch?v=HGYYEUSm-0Q
+5. After downloading, analyze the video by clicking "Analyze video". The video will be divided to shots and create a pdf file with all the slides/boards. 
+5. To watch the video, click "select video" on the first window, and choose the desired video from the databse. A media player with the shots list should be opened.
+
