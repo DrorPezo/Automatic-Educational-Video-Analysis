@@ -1,4 +1,5 @@
 import os
+import sys
 
 
 def main():
@@ -7,4 +8,5 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.path.append('utils')
     main()
